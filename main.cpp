@@ -191,7 +191,7 @@ void init()
 	objectRotation = glm::mat4(1.0f);
 
 	cout << " loading model " << endl;
-	if(objLoader.loadModel("TestModels/axes.obj", model))//returns true if the model is loaded, puts the model in the model parameter
+	if(objLoader.loadModel("Models/heli.obj", model))//returns true if the model is loaded, puts the model in the model parameter
 	{
 		cout << " model loaded " << endl;		
 
