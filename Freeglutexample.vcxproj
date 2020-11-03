@@ -47,6 +47,7 @@
     <ClCompile Include="Utilities\IntersectionTests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".gitignore" />
     <None Include="glslfiles\basic.frag" />
     <None Include="glslfiles\basic.vert" />
     <None Include="glslfiles\basicTransformations.frag" />

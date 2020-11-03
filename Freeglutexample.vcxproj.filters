@@ -133,5 +133,8 @@
     <None Include="glslfiles\basicTransformationsWithDisplacement.frag">
       <Filter>headers\glslfiles</Filter>
     </None>
+    <None Include=".gitignore">
+      <Filter>headers</Filter>
+    </None>
   </ItemGroup>
 </Project>
