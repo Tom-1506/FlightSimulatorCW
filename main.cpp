@@ -114,10 +114,11 @@ void display()
 	glUniform1f(glGetUniformLocation(myShader->handle(), "material_shininess"), Material_Shininess);
 
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	pos.x += objectRotation[2][0]*0.003;
-	pos.y += objectRotation[2][1]*0.003;
-	pos.z += objectRotation[2][2]*0.003;
+	pos.x += objectRotation[2][0]*0.1;
+	pos.y += objectRotation[2][1]*0.1;
+	pos.z += objectRotation[2][2]*0.1;
 	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
+	modelmatrix = glm::scale(modelmatrix, glm::vec3(2.0f));
 	ModelViewMatrix = viewingMatrix * modelmatrix * objectRotation;
 	//ModelViewMatrix = viewingMatrix * objectRotation;
 	
@@ -191,7 +192,7 @@ void init()
 	objectRotation = glm::mat4(1.0f);
 
 	cout << " loading model " << endl;
-	if(objLoader.loadModel("Models/heli.obj", model))//returns true if the model is loaded, puts the model in the model parameter
+	if(objLoader.loadModel("Models/TAL16.obj", model))//returns true if the model is loaded, puts the model in the model parameter
 	{
 		cout << " model loaded " << endl;		
 
@@ -270,31 +271,30 @@ void processKeys()
 	float spinXinc = 0.0f, spinYinc = 0.0f, spinZinc = 0.0f;
 	if (Left)
 	{
-		spinYinc = -0.001f;
+		spinYinc = -0.1f;
 	}
 	if (Right)
 	{
-		spinYinc = 0.001f;
+		spinYinc = 0.1f;
 	}
 	if (Up)
 	{
-		spinXinc = 0.001f;
+		spinXinc = 0.1f;
 	}
 	if (Down)
 	{
-		spinXinc = -0.001f;
+		spinXinc = -0.1f;
 	}
 	if (Home)
 	{
-		spinZinc = 0.001f;
+		spinZinc = 0.1f;
 	}
 	if (End)
 	{
-		spinZinc = -0.001f;
+		spinZinc = -0.1f;
 	}
 	updateTransform(spinXinc, spinYinc, spinZinc);
 }
-
 
 void updateTransform(float xinc, float yinc, float zinc)
 {
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(screenWidth, screenHeight);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow("OpenGL FreeGLUT Example: Obj loading");
+	glutCreateWindow("Flight Simulator");
 
 	//This initialises glew - it must be called after the window is created.
 	GLenum err = glewInit();
