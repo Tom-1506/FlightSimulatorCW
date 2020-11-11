@@ -8,9 +8,8 @@ Kd 0.800000 0.800000 0.800000
 Ks 0.199650 0.199650 0.199650
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
-d 1.000000
-map_Kd none.png
-map_Ka none.png
+d 0.000000
+map_Kd white.png
 illum 2
 
 newmtl fuselaje
@@ -21,6 +20,5 @@ Ks 0.259720 0.259720 0.259720
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
-map_Kd none.png
-map_Ka none.png
+map_Kd TALTS.png
 illum 2
