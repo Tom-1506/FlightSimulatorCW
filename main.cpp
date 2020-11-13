@@ -1,5 +1,6 @@
 #include <iostream>
 using namespace std;
+#include <cmath>
 
 //--- OpenGL ---
 #include "GL\glew.h"
@@ -17,11 +18,13 @@ using namespace std;
 #include "Images\FreeImage.h"
 
 #include "shaders\Shader.h"
+#include "sphere\Sphere.h"
 
 glm::mat4 objectTransformation;
 
 Shader* myShader;  ///shader object 
 Shader* myBasicShader;
+Shader* sphereShader;
 
 //MODEL LOADING
 #include "3DStruct\threeDModel.h"
@@ -32,6 +35,13 @@ float temp = 0.002f;
 
 ThreeDModel plane; //A threeDModel object for the plane
 ThreeDModel terrain; //A threeDModel object for the terrain
+
+//Sphere used to test collisions
+Sphere mySphere;
+float mySphereCentre[3];
+Sphere terrainSphere;
+float terrainSphereCentre[3];
+
 OBJLoader objLoader;	//this object is used to load the 3d models.
 ///END MODEL LOADING
 
@@ -83,12 +93,6 @@ void display()
 	
 	glUseProgram(myShader->handle());  // use the shader
 
-	//amount += temp;
-	//if(amount > 1.0f || amount < -1.5f)
-	//	temp = -temp;
-	//amount = 0;
-	//glUniform1f(glGetUniformLocation(myShader->handle(), "displacement"), amount);
-
 	GLuint matLocation = glGetUniformLocation(myShader->handle(), "ProjectionMatrix");  
 	glUniformMatrix4fv(matLocation, 1, GL_FALSE, &ProjectionMatrix[0][0]);
 
@@ -97,12 +101,8 @@ void display()
 	//environment view
 	viewingMatrix = glm::lookAt(glm::vec3(-10, 10, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
 
-	/*static float angle = 0.0f;
-	angle += 0.0001;
-	viewingMatrix = glm::rotate(viewingMatrix, angle, glm::vec3(1.0f, 0.0f, 0.0));*/
-
 	//view behind jet, needs work
-	//viewingMatrix = glm::lookAt(glm::vec3(pos.x, pos.y + 2, pos.z - 3), pos, glm::vec3(0.0f, 1.0f, 0.0));
+	//viewingMatrix = glm::lookAt(glm::vec3(pos.x, pos.y + 2, pos.z - 5), pos, glm::vec3(0.0f, 1.0f, 0.0));
 
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
 
@@ -156,6 +156,51 @@ void display()
 
 	// END TERRAIN ------------------------
 
+	// SPHERE -----------------------------
+	/*
+	glUseProgram(sphereShader->handle());
+
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
+
+	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
+	glUniformMatrix3fv(glGetUniformLocation(sphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	if (checkDist()){
+		mySphere.render();
+	}
+	
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+	*/
+	// END SPHERE -------------------------
+
+	// TERRAIN SPHERE ---------------------
+	/*
+	glUseProgram(sphereShader->handle());
+
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
+
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0));
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
+	glUniformMatrix3fv(glGetUniformLocation(sphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	if (checkDist()) {
+		terrainSphere.render();
+	}	
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+	*/
+	// END TERRAIN SPHERE ------------------
+
 	glFlush();
 	glutSwapBuffers();
 }
@@ -178,7 +223,6 @@ void init()
 	glEnable(GL_DEPTH_TEST);
 
 	myShader = new Shader();
-	//if(!myShader->load("BasicView", "glslfiles/basicTransformationsWithDisplacement.vert", "glslfiles/basicTransformationsWithDisplacement.frag"))
     if(!myShader->load("BasicView", "glslfiles/basicTransformations.vert", "glslfiles/basicTransformations.frag"))
 	{
 		cout << "failed to load shader" << endl;
@@ -190,12 +234,17 @@ void init()
 		cout << "failed to load shader" << endl;
 	}		
 
+	sphereShader = new Shader();
+	if (!sphereShader->load("BasicView", "glslfiles/basicSpecular.vert", "glslfiles/basicSpecular.frag"))
+	{
+		cout << "failed to load shader" << endl;
+	}
+
 	glUseProgram(myShader->handle());  // use the shader
 
 	glEnable(GL_TEXTURE_2D);
 
-	//lets initialise our object's rotation transformation 
-	//to the identity matrix
+	//initialise objectTransformation matrix to identity mat 
 	objectTransformation = glm::mat4(1.0f);
 
 	cout << " loading model " << endl;
@@ -203,9 +252,6 @@ void init()
 	{
 		cout << " model loaded " << endl;		
 
-		//if you want to translate the object to the origin of the screen,
-		//first calculate the centre of the object, then move all the vertices
-		//back so that the centre is on the origin.
 		//model.calcCentrePoint();
 		//model.centreOnZero();
 	
@@ -224,9 +270,6 @@ void init()
 	{
 		cout << " model loaded " << endl;
 
-		//if you want to translate the object to the origin of the screen,
-		//first calculate the centre of the object, then move all the vertices
-		//back so that the centre is on the origin.
 		//model.calcCentrePoint();
 		//model.centreOnZero();
 
@@ -240,6 +283,23 @@ void init()
 	{
 		cout << " model failed to load " << endl;
 	}
+
+	//Sphere construction for testing collisions
+	/*
+	mySphere.setCentre(pos.x, pos.y, pos.z);
+	mySphere.setRadius(3.1);
+	mySphere.constructGeometry(sphereShader, 10);
+	mySphereCentre[0] = pos.x;
+	mySphereCentre[1] = pos.y;
+	mySphereCentre[2] = pos.z;
+
+	terrainSphere.setCentre(10, 10, 5);
+	terrainSphere.setRadius(3.1);
+	terrainSphere.constructGeometry(sphereShader, 10);
+	terrainSphereCentre[0] = terrainSphere.cx;
+	terrainSphereCentre[1] = terrainSphere.cy;
+	terrainSphereCentre[2] = terrainSphere.cz;
+	*/
 }
 
 void special(int key, int x, int y){
@@ -396,3 +456,13 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+
+//Possible sphere collision implementation, not working
+/*
+bool checkDist() {
+	if ((pow((mySphereCentre[0] - terrainSphereCentre[0]), 2) + pow((mySphereCentre[1] - terrainSphereCentre[1]), 2) + pow((mySphereCentre[2] - terrainSphereCentre[2]), 2)) < 100) {
+		return false;
+	}
+	return true;
+}
+*/

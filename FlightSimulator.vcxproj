@@ -27,6 +27,7 @@
     <ClInclude Include="Obj\OBJLoader.h" />
     <ClInclude Include="Octree\Octree.h" />
     <ClInclude Include="shaders\Shader.h" />
+    <ClInclude Include="sphere\Sphere.h" />
     <ClInclude Include="Structures\Vector2d.h" />
     <ClInclude Include="Structures\Vector3d.h" />
     <ClInclude Include="TextureHandler\TextureHandler.h" />
@@ -41,6 +42,7 @@
     <ClCompile Include="Obj\OBJLoader.cpp" />
     <ClCompile Include="Octree\Octree.cpp" />
     <ClCompile Include="shaders\Shader.cpp" />
+    <ClCompile Include="sphere\Sphere.cpp" />
     <ClCompile Include="Structures\Vector2d.cpp" />
     <ClCompile Include="Structures\Vector3d.cpp" />
     <ClCompile Include="TextureHandler\TextureHandler.cpp" />
@@ -50,6 +52,8 @@
     <None Include=".gitignore" />
     <None Include="glslfiles\basic.frag" />
     <None Include="glslfiles\basic.vert" />
+    <None Include="glslfiles\basicSpecular.frag" />
+    <None Include="glslfiles\basicSpecular.vert" />
     <None Include="glslfiles\basicTransformations.frag" />
     <None Include="glslfiles\basicTransformations.vert" />
     <None Include="glslfiles\basicTransformationsWithDisplacement.frag" />

@@ -37,6 +37,9 @@
     <ClCompile Include="shaders\Shader.cpp">
       <Filter>headers\shaders</Filter>
     </ClCompile>
+    <ClCompile Include="sphere\Sphere.cpp">
+      <Filter>headers\sphere</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3dStruct\threeDModel.h">
@@ -74,6 +77,9 @@
     </ClInclude>
     <ClInclude Include="shaders\Shader.h">
       <Filter>headers\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="sphere\Sphere.h">
+      <Filter>headers\sphere</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -113,6 +119,9 @@
     <Filter Include="headers\shaders">
       <UniqueIdentifier>{c715a860-d723-4985-8289-8bd7cadcb8e0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="headers\sphere">
+      <UniqueIdentifier>{59d470cf-acb9-4fd2-8ab0-0786f4e29fd9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="glslfiles\basicTransformationsWithDisplacement.vert">
@@ -135,6 +144,12 @@
     </None>
     <None Include=".gitignore">
       <Filter>headers</Filter>
+    </None>
+    <None Include="glslfiles\basicSpecular.frag">
+      <Filter>headers\glslfiles</Filter>
+    </None>
+    <None Include="glslfiles\basicSpecular.vert">
+      <Filter>headers\glslfiles</Filter>
     </None>
   </ItemGroup>
 </Project>
