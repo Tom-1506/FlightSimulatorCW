@@ -47,14 +47,14 @@ float Material_Specular[4] = {0.9f,0.9f,0.8f,1.0f};
 float Material_Shininess = 50;
 
 //Light Properties
-float Light_Ambient_And_Diffuse[4] = {0.8f, 0.8f, 0.6f, 1.0f};
-float Light_Specular[4] = {1.0f,1.0f,1.0f,1.0f};
+float Light_Ambient_And_Diffuse[4] = {1.4f, 1.4f, 1.2f, 1.6f};
+float Light_Specular[4] = {1.6f,1.6f,1.6f,1.6f};
 float LightPos[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 
 //
 int	mouse_x=0, mouse_y=0;
 bool LeftPressed = false;
-int screenWidth=1280, screenHeight=720;
+int screenWidth = 960, screenHeight = 540;
 
 //booleans to handle when the arrow keys are pressed or released.
 bool Left = false;
@@ -95,7 +95,7 @@ void display()
 	glm::mat4 viewingMatrix = glm::mat4(1.0f);
 	
 	//environment view
-	viewingMatrix = glm::lookAt(glm::vec3(10, 15, -10), pos, glm::vec3(0.0f, 1.0f, 0.0));
+	viewingMatrix = glm::lookAt(glm::vec3(-10, 10, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
 
 	/*static float angle = 0.0f;
 	angle += 0.0001;
@@ -116,39 +116,45 @@ void display()
 	glUniform4fv(glGetUniformLocation(myShader->handle(), "material_specular"), 1, Material_Specular);
 	glUniform1f(glGetUniformLocation(myShader->handle(), "material_shininess"), Material_Shininess);
 
-	glm::mat4 modelmatrix = glm::scale(modelmatrix, glm::vec3(2.0f));
-	terrain.drawElementsUsingVBO(myShader);
+	// start rendering
+	// PLANE ---------------------------
 
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	modelmatrix = glm::translate(glm::mat4(1.0f), pos);
+	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
 	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
-	//ModelViewMatrix = viewingMatrix * objectRotation;
-	
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
-
 	
-	glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix));
+	glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); //lighting normals for plane
 	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
-	
+		
 	plane.drawElementsUsingVBO(myShader);	
-	
+
 	glUseProgram(myBasicShader->handle());  // use the shader
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+		
+	//plane.drawOctreeLeaves(myBasicShader);
+
+	// END PLANE -------------------------
 	
-	//model.drawBoundingBox(myBasicShader);
-	//model.drawOctreeLeaves(myBasicShader);
-	
+	// TERRAIN ---------------------------
+
 	glUseProgram(myShader->handle());  // use the shader
 
-	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0));
-
-	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix));
-	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
-
-	//Pass the uniform for the modelview matrix - in this case just "r"
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for terrain 
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
-	//boxFront.drawElementsUsingVBO(myShader);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
+	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+	
+	terrain.drawElementsUsingVBO(myShader);
+
+	glUseProgram(myBasicShader->handle());  // use the shader
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	//terrain.drawOctreeLeaves(myBasicShader);
+
+	// END TERRAIN ------------------------
 
 	glFlush();
 	glutSwapBuffers();
@@ -308,33 +314,33 @@ void processKeys()
 	float spinXinc = 0.0f, spinYinc = 0.0f, spinZinc = 0.0f;
 	if (Left)
 	{
-		spinYinc = 0.1f;
+		spinYinc = 0.01f;
 	}
 	if (Right)
 	{
-		spinYinc = -0.1f;
+		spinYinc = -0.01f;
 	}
 	if (Up)
 	{
-		spinXinc = 0.1f;
+		spinXinc = 0.01f;
 	}
 	if (Down)
 	{
-		spinXinc = -0.1f;
+		spinXinc = -0.01f;
 	}
 	if (A)
 	{
-		spinZinc = -0.1f;
+		spinZinc = -0.01f;
 	}
 	if (D)
 	{
-		spinZinc = 0.1f;
+		spinZinc = 0.01f;
 	}
 	if (SPACE)
 	{
-		pos.x += objectTransformation[2][0] * 0.1;
-		pos.y += objectTransformation[2][1] * 0.1;
-		pos.z += objectTransformation[2][2] * 0.1;
+		pos.x += objectTransformation[2][0] * 0.01;
+		pos.y += objectTransformation[2][1] * 0.01;
+		pos.z += objectTransformation[2][2] * 0.01;
 	}
 	updateTransform(spinXinc, spinYinc, spinZinc);
 }
@@ -360,7 +366,7 @@ int main(int argc, char **argv)
 
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(screenWidth, screenHeight);
-	glutInitWindowPosition(100, 100);
+	glutInitWindowPosition(20, 20);
 	glutCreateWindow("Flight Simulator");
 
 	//This initialises glew - it must be called after the window is created.
