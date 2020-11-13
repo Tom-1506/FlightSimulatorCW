@@ -66,7 +66,7 @@ bool D = false;
 bool SPACE = false;
 
 float spin=180;
-float speed=0;
+float speed=0.1f;
 
 //OPENGL FUNCTION PROTOTYPES
 void display();				//called in winmain to draw everything to the screen
@@ -314,33 +314,33 @@ void processKeys()
 	float spinXinc = 0.0f, spinYinc = 0.0f, spinZinc = 0.0f;
 	if (Left)
 	{
-		spinYinc = 0.01f;
+		spinYinc = speed;
 	}
 	if (Right)
 	{
-		spinYinc = -0.01f;
+		spinYinc = -speed;
 	}
 	if (Up)
 	{
-		spinXinc = 0.01f;
+		spinXinc = speed;
 	}
 	if (Down)
 	{
-		spinXinc = -0.01f;
+		spinXinc = -speed;
 	}
 	if (A)
 	{
-		spinZinc = -0.01f;
+		spinZinc = -speed;
 	}
 	if (D)
 	{
-		spinZinc = 0.01f;
+		spinZinc = speed;
 	}
 	if (SPACE)
 	{
-		pos.x += objectTransformation[2][0] * 0.01;
-		pos.y += objectTransformation[2][1] * 0.01;
-		pos.z += objectTransformation[2][2] * 0.01;
+		pos.x += objectTransformation[2][0] * speed;
+		pos.y += objectTransformation[2][1] * speed;
+		pos.z += objectTransformation[2][2] * speed;
 	}
 	updateTransform(spinXinc, spinYinc, spinZinc);
 }
