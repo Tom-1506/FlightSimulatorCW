@@ -85,6 +85,7 @@ void init();				//called in winmain when the program starts.
 void processKeys();         //called in winmain to process keyboard input
 void idle();		//idle function
 void updateTransform(float xinc, float yinc, float zinc);
+//bool checkDist();
 
 /*************    START OF OPENGL FUNCTIONS   ****************/
 void display()									
@@ -152,12 +153,14 @@ void display()
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
-	//terrain.drawOctreeLeaves(myBasicShader);
+	terrain.drawOctreeLeaves(myBasicShader);
 
 	// END TERRAIN ------------------------
 
 	// SPHERE -----------------------------
 	/*
+	mySphere.setCentre(pos.x, pos.y, pos.z);
+	
 	glUseProgram(sphereShader->handle());
 
 	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
@@ -181,6 +184,8 @@ void display()
 
 	// TERRAIN SPHERE ---------------------
 	/*
+	terrainSphere.setCentre(10, 10, 5);
+	
 	glUseProgram(sphereShader->handle());
 
 	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
@@ -289,16 +294,10 @@ void init()
 	mySphere.setCentre(pos.x, pos.y, pos.z);
 	mySphere.setRadius(3.1);
 	mySphere.constructGeometry(sphereShader, 10);
-	mySphereCentre[0] = pos.x;
-	mySphereCentre[1] = pos.y;
-	mySphereCentre[2] = pos.z;
 
 	terrainSphere.setCentre(10, 10, 5);
 	terrainSphere.setRadius(3.1);
-	terrainSphere.constructGeometry(sphereShader, 10);
-	terrainSphereCentre[0] = terrainSphere.cx;
-	terrainSphereCentre[1] = terrainSphere.cy;
-	terrainSphereCentre[2] = terrainSphere.cz;
+	terrainSphere.constructGeometry(sphereShader, 10);	
 	*/
 }
 
@@ -460,7 +459,7 @@ int main(int argc, char **argv)
 //Possible sphere collision implementation, not working
 /*
 bool checkDist() {
-	if ((pow((mySphereCentre[0] - terrainSphereCentre[0]), 2) + pow((mySphereCentre[1] - terrainSphereCentre[1]), 2) + pow((mySphereCentre[2] - terrainSphereCentre[2]), 2)) < 100) {
+	if ((pow((mySphere.cx - terrainSphere.cx), 2) + pow((mySphere.cy - mySphere.cy), 2) + pow((mySphere.cz - terrainSphere.cz), 2)) < pow(6.2, 2)) {
 		return false;
 	}
 	return true;
