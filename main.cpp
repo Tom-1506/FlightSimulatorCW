@@ -52,13 +52,13 @@ glm::vec3 pos = glm::vec3(0.0f,0.0f,0.0f); //vector for the position of the obje
 
 //Material properties
 float Material_Ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
-float Material_Diffuse[4] = {0.8f, 0.8f, 0.5f, 1.0f};
-float Material_Specular[4] = {0.9f,0.9f,0.8f,1.0f};
+float Material_Diffuse[4] = {0.8f, 0.8f, 0.74f, 1.0f};
+float Material_Specular[4] = {0.9f,0.9f,0.84f,1.0f};
 float Material_Shininess = 50;
 
 //Light Properties
-float Light_Ambient_And_Diffuse[4] = {1.4f, 1.4f, 1.2f, 1.6f};
-float Light_Specular[4] = {1.6f,1.6f,1.6f,1.6f};
+float Light_Ambient_And_Diffuse[4] = {1.4f, 1.4f, 1.34f, 1.6f};
+float Light_Specular[4] = {1.6f,1.6f,1.54f,1.6f};
 float LightPos[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 
 //
@@ -85,7 +85,7 @@ void init();				//called in winmain when the program starts.
 void processKeys();         //called in winmain to process keyboard input
 void idle();		//idle function
 void updateTransform(float xinc, float yinc, float zinc);
-//bool checkDist();
+//bool checkSphereCol();
 
 /*************    START OF OPENGL FUNCTIONS   ****************/
 void display()									
@@ -100,10 +100,10 @@ void display()
 	glm::mat4 viewingMatrix = glm::mat4(1.0f);
 	
 	//environment view
-	viewingMatrix = glm::lookAt(glm::vec3(-10, 10, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
+	//viewingMatrix = glm::lookAt(glm::vec3(-10, 10, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
 
 	//view behind jet, needs work
-	//viewingMatrix = glm::lookAt(glm::vec3(pos.x, pos.y + 2, pos.z - 5), pos, glm::vec3(0.0f, 1.0f, 0.0));
+	viewingMatrix = glm::lookAt(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.8, -5)), pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.8, 0)), glm::vec3(objectTransformation[1]));
 
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
 
@@ -121,6 +121,7 @@ void display()
 	// PLANE ---------------------------
 
 	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
+
 	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 	
@@ -136,12 +137,37 @@ void display()
 	//plane.drawOctreeLeaves(myBasicShader);
 
 	// END PLANE -------------------------
+
+	// SPHERE -----------------------------
+	/*
+	mySphere.setCentre(pos.x, pos.y, pos.z);
+
+	glUseProgram(sphereShader->handle());
+
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
+
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
+	glUniformMatrix3fv(glGetUniformLocation(sphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	mySphere.render();
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+
+	glm::vec3 sphereCentre = glm::vec3(mySphere.cx, mySphere.cy, mySphere.cz);
+	cout << mySphere.cx << " " << mySphere.cy << " " << mySphere.cz << endl;
+	*/
+	// END SPHERE -------------------------
 	
 	// TERRAIN ---------------------------
 
 	glUseProgram(myShader->handle());  // use the shader
 
-	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for terrain 
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, -5, 0)); //resets model view for terrain 
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
 	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
@@ -153,34 +179,9 @@ void display()
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
-	terrain.drawOctreeLeaves(myBasicShader);
+	//terrain.drawOctreeLeaves(myBasicShader);
 
-	// END TERRAIN ------------------------
-
-	// SPHERE -----------------------------
-	/*
-	mySphere.setCentre(pos.x, pos.y, pos.z);
-	
-	glUseProgram(sphereShader->handle());
-
-	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
-
-	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
-	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
-
-	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
-	glUniformMatrix3fv(glGetUniformLocation(sphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
-
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	if (checkDist()){
-		mySphere.render();
-	}
-	
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
-	*/
-	// END SPHERE -------------------------
+	// END TERRAIN ------------------------	
 
 	// TERRAIN SPHERE ---------------------
 	/*
@@ -218,7 +219,7 @@ void reshape(int width, int height)		// Resize the OpenGL window
 	glViewport(0,0,width,height);						// Reset The Current Viewport
 
 	//Set the projection matrix
-	ProjectionMatrix = glm::perspective(glm::radians(90.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 1.0f, 200.0f);
+	ProjectionMatrix = glm::perspective(glm::radians(60.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 0.1f, 200.0f);
 }
 void init()
 {
@@ -290,11 +291,12 @@ void init()
 	}
 
 	//Sphere construction for testing collisions
-	/*
+	
 	mySphere.setCentre(pos.x, pos.y, pos.z);
-	mySphere.setRadius(3.1);
+	mySphere.setRadius(0.3);
 	mySphere.constructGeometry(sphereShader, 10);
 
+	/*
 	terrainSphere.setCentre(10, 10, 5);
 	terrainSphere.setRadius(3.1);
 	terrainSphere.constructGeometry(sphereShader, 10);	
@@ -373,27 +375,27 @@ void processKeys()
 	float spinXinc = 0.0f, spinYinc = 0.0f, spinZinc = 0.0f;
 	if (Left)
 	{
-		spinYinc = speed;
+		spinZinc = -speed / 3;
 	}
 	if (Right)
 	{
-		spinYinc = -speed;
+		spinZinc = speed / 3;
 	}
 	if (Up)
 	{
-		spinXinc = speed;
+		spinXinc = speed / 4;
 	}
 	if (Down)
 	{
-		spinXinc = -speed;
+		spinXinc = -speed / 4;
 	}
 	if (A)
 	{
-		spinZinc = -speed;
+		spinYinc = speed / 8;
 	}
 	if (D)
 	{
-		spinZinc = speed;
+		spinYinc = -speed / 8;
 	}
 	if (SPACE)
 	{
@@ -458,7 +460,7 @@ int main(int argc, char **argv)
 
 //Possible sphere collision implementation, not working
 /*
-bool checkDist() {
+bool checkSphereCol() {
 	if ((pow((mySphere.cx - terrainSphere.cx), 2) + pow((mySphere.cy - mySphere.cy), 2) + pow((mySphere.cz - terrainSphere.cz), 2)) < pow(6.2, 2)) {
 		return false;
 	}
