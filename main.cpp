@@ -38,6 +38,7 @@ ThreeDModel terrain; //A threeDModel object for the terrain
 
 //Sphere used to test collisions
 Sphere mySphere;
+glm::vec3 sphereCentre;
 float mySphereCentre[3];
 Sphere terrainSphere;
 float terrainSphereCentre[3];
@@ -74,9 +75,11 @@ bool Down = false;
 bool A = false;
 bool D = false;
 bool SPACE = false;
+bool C = false;
 
 float spin=180;
 float speed=0.1f;
+int camera = 0;
 
 //OPENGL FUNCTION PROTOTYPES
 void display();				//called in winmain to draw everything to the screen
@@ -85,6 +88,7 @@ void init();				//called in winmain when the program starts.
 void processKeys();         //called in winmain to process keyboard input
 void idle();		//idle function
 void updateTransform(float xinc, float yinc, float zinc);
+void changeCamera();
 //bool checkSphereCol();
 
 /*************    START OF OPENGL FUNCTIONS   ****************/
@@ -99,11 +103,19 @@ void display()
 
 	glm::mat4 viewingMatrix = glm::mat4(1.0f);
 	
-	//environment view
-	//viewingMatrix = glm::lookAt(glm::vec3(-10, 10, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
-
-	//view behind jet, needs work
-	viewingMatrix = glm::lookAt(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.8, -5)), pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.8, 0)), glm::vec3(objectTransformation[1]));
+	switch (camera) {
+	case 0:
+		//environment view
+		viewingMatrix = glm::lookAt(glm::vec3(-10, 10, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
+		break;
+	case 1:
+		//view behind jet
+		viewingMatrix = glm::lookAt(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.8, -5)), pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.8, 0)), glm::vec3(objectTransformation[1]));
+		break;
+	case 2:
+		//cockpit view, need transparent glass and interior
+		viewingMatrix = glm::lookAt(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.15, 1.1)), pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.15, 1.2)), glm::vec3(objectTransformation[1]));
+	}	
 
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
 
@@ -139,8 +151,9 @@ void display()
 	// END PLANE -------------------------
 
 	// SPHERE -----------------------------
-	/*
-	mySphere.setCentre(pos.x, pos.y, pos.z);
+	
+	sphereCentre = glm::vec3(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0, 3)));
+	mySphere.setCentre(sphereCentre.x, sphereCentre.y, sphereCentre.z);
 
 	glUseProgram(sphereShader->handle());
 
@@ -158,9 +171,8 @@ void display()
 
 	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 
-	glm::vec3 sphereCentre = glm::vec3(mySphere.cx, mySphere.cy, mySphere.cz);
-	cout << mySphere.cx << " " << mySphere.cy << " " << mySphere.cz << endl;
-	*/
+	//cout << mySphere.cx << " " << mySphere.cy << " " << mySphere.cz << endl;
+	
 	// END SPHERE -------------------------
 	
 	// TERRAIN ---------------------------
@@ -219,7 +231,7 @@ void reshape(int width, int height)		// Resize the OpenGL window
 	glViewport(0,0,width,height);						// Reset The Current Viewport
 
 	//Set the projection matrix
-	ProjectionMatrix = glm::perspective(glm::radians(60.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 0.1f, 200.0f);
+	ProjectionMatrix = glm::perspective(glm::radians(60.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 0.01f, 200.0f);
 }
 void init()
 {
@@ -280,6 +292,7 @@ void init()
 		//model.centreOnZero();
 
 		terrain.calcVertNormalsUsingOctree();  //the method will construct the octree if it hasn't already been created.
+		
 
 		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
 		terrain.initDrawElements();
@@ -291,8 +304,7 @@ void init()
 	}
 
 	//Sphere construction for testing collisions
-	
-	mySphere.setCentre(pos.x, pos.y, pos.z);
+	mySphere.setCentre(pos.x, pos.y, pos.z + 3);
 	mySphere.setRadius(0.3);
 	mySphere.constructGeometry(sphereShader, 10);
 
@@ -347,6 +359,9 @@ void keyFunc(unsigned char key, int x, int y){
 		case 100:
 			D = true;
 			break;
+		case 99:
+			C = true;
+			break;
 		case 32:
 			SPACE = true;
 			break;
@@ -396,6 +411,11 @@ void processKeys()
 	if (D)
 	{
 		spinYinc = -speed / 8;
+	}
+	if (C)
+	{
+		changeCamera();
+		C = false;
 	}
 	if (SPACE)
 	{
@@ -456,6 +476,12 @@ int main(int argc, char **argv)
 	glutMainLoop();
 
 	return 0;
+}
+
+void changeCamera() {
+	camera++;
+	if (camera > 2)
+		camera = 0;
 }
 
 //Possible sphere collision implementation, not working
