@@ -11,6 +11,7 @@
 #include <string>
 
 #include "..\gl\glew.h"
+#include "../glm\glm.hpp"
 
 class Shader;
 
@@ -147,6 +148,7 @@ public:
 	void calcBoundingBox(double& minX, double& minY, double& minZ, double& maxX, double& maxY, double& maxZ);
 	void drawBoundingBox(Shader* myShader);
 	void drawOctreeLeaves(Shader* myShader);
+	bool checkPointInOctree(glm::vec3 point, glm::vec3 offset);
 	//end octree methods
 
 };

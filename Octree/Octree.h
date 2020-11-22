@@ -8,9 +8,11 @@ using namespace std;
 #include "../3DStruct/threeDModel.h"
 #include "../Box/Box.h"
 
+#include "../glm\glm.hpp"
+
 class Shader;
 
-#define MAX_DEPTH  4 
+#define MAX_DEPTH  5
 
 class Octree
 {
@@ -43,6 +45,7 @@ public:
 	Octree* getChild(int i);
 	int getLevel();
 	void processVerticesByLeaf(ThreeDModel* model);
+	bool checkPointInsideOctreeLeaves(glm::vec3 point, glm::vec3 offset);
 };
 
 #endif _OCTREE_H

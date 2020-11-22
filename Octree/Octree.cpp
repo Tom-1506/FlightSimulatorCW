@@ -565,3 +565,24 @@ int Octree::getPrimitiveListSize()
 	return PrimitiveListSize;
 }
 
+bool Octree::checkPointInsideOctreeLeaves(glm::vec3 point, glm::vec3 offset)
+{
+	if (Level >= MAX_DEPTH) //leaf
+	{
+		if ((point.x > minX + offset.x && point.x < maxX + offset.x) && (point.y > minY + offset.y && point.y < maxY + offset.y) && (point.z > minZ + offset.z && point.z < maxZ + offset.z))
+		{
+			return true;
+		}
+		return false;
+	}
+	else
+	{
+		for (int i = 0; i < 8; i++)
+		{
+			if (children[i] != NULL)
+				if (children[i]->checkPointInsideOctreeLeaves(point, offset))
+					return true;
+		}
+	}
+	return false;
+}

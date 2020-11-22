@@ -857,3 +857,15 @@ void ThreeDModel::deleteVertexFaceData()
 	theMaterials = 0;
 	theVertNormals = 0;
 }
+
+bool ThreeDModel::checkPointInOctree(glm::vec3 point, glm::vec3 offset)
+{
+	if (octree != NULL)
+	{
+		return octree->checkPointInsideOctreeLeaves(point, offset);
+	}
+	else 
+	{
+		return false;
+	}
+}

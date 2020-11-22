@@ -1,4 +1,4 @@
-# Blender MTL File: 'TAL16.blend'
+# Blender MTL File: 'TAL16edit.blend'
 # Material Count: 2
 
 newmtl GLASS
@@ -9,7 +9,7 @@ Ks 0.199650 0.199650 0.199650
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 0.000000
-map_Kd white.png
+map_Kd none.png
 illum 2
 
 newmtl fuselaje

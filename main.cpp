@@ -25,6 +25,7 @@ glm::mat4 objectTransformation;
 Shader* myShader;  ///shader object 
 Shader* myBasicShader;
 Shader* sphereShader;
+Shader* skySphereShader;
 
 //MODEL LOADING
 #include "3DStruct\threeDModel.h"
@@ -35,13 +36,12 @@ float temp = 0.002f;
 
 ThreeDModel plane; //A threeDModel object for the plane
 ThreeDModel terrain; //A threeDModel object for the terrain
+ThreeDModel skySphere; //A threeDModel object for the sky sphere
 
 //Sphere used to test collisions
 Sphere mySphere;
 glm::vec3 sphereCentre;
 float mySphereCentre[3];
-Sphere terrainSphere;
-float terrainSphereCentre[3];
 
 OBJLoader objLoader;	//this object is used to load the 3d models.
 ///END MODEL LOADING
@@ -62,7 +62,13 @@ float Light_Ambient_And_Diffuse[4] = {1.4f, 1.4f, 1.34f, 1.6f};
 float Light_Specular[4] = {1.6f,1.6f,1.54f,1.6f};
 float LightPos[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 
-//
+double minX = -50;
+double minY = 0;
+double minZ = -50;
+double maxX = 50;
+double maxY = 10;
+double maxZ = 50;
+
 int	mouse_x=0, mouse_y=0;
 bool LeftPressed = false;
 int screenWidth = 960, screenHeight = 540;
@@ -89,7 +95,7 @@ void processKeys();         //called in winmain to process keyboard input
 void idle();		//idle function
 void updateTransform(float xinc, float yinc, float zinc);
 void changeCamera();
-//bool checkSphereCol();
+bool checkSphereCol();
 
 /*************    START OF OPENGL FUNCTIONS   ****************/
 void display()									
@@ -106,7 +112,7 @@ void display()
 	switch (camera) {
 	case 0:
 		//environment view
-		viewingMatrix = glm::lookAt(glm::vec3(-10, 10, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
+		viewingMatrix = glm::lookAt(glm::vec3(15, 10, 15), pos, glm::vec3(0.0f, 1.0f, 0.0));
 		break;
 	case 1:
 		//view behind jet
@@ -114,7 +120,8 @@ void display()
 		break;
 	case 2:
 		//cockpit view, need transparent glass and interior
-		viewingMatrix = glm::lookAt(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.15, 1.1)), pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.15, 1.2)), glm::vec3(objectTransformation[1]));
+		viewingMatrix = glm::lookAt(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.18, 1.23)), pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0.178, 1.3)), glm::vec3(objectTransformation[1]));
+		break;
 	}	
 
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
@@ -148,9 +155,9 @@ void display()
 		
 	//plane.drawOctreeLeaves(myBasicShader);
 
-	// END PLANE -------------------------
+	// END PLANE -----------------------
 
-	// SPHERE -----------------------------
+	// SPHERE --------------------------
 	
 	sphereCentre = glm::vec3(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0, 3)));
 	mySphere.setCentre(sphereCentre.x, sphereCentre.y, sphereCentre.z);
@@ -165,7 +172,10 @@ void display()
 	glUniformMatrix3fv(glGetUniformLocation(sphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	mySphere.render();
+	
+	if (terrain.checkPointInOctree(sphereCentre, glm::vec3(0, -5, 0))) {
+		mySphere.render();
+	}
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -173,9 +183,27 @@ void display()
 
 	//cout << mySphere.cx << " " << mySphere.cy << " " << mySphere.cz << endl;
 	
-	// END SPHERE -------------------------
+	// END SPHERE ----------------------
+
+	// SKY SPHERE ----------------------
 	
-	// TERRAIN ---------------------------
+	glUseProgram(myShader->handle());  // use the shader
+
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for skySphere 
+	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
+	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+	skySphere.drawElementsUsingVBO(myShader);
+
+	glUseProgram(myBasicShader->handle());  // use the shader
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+	
+	// END SKY SPHERE ------------------
+	
+	// TERRAIN -------------------------
 
 	glUseProgram(myShader->handle());  // use the shader
 
@@ -191,33 +219,10 @@ void display()
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
-	//terrain.drawOctreeLeaves(myBasicShader);
+	terrain.drawOctreeLeaves(myBasicShader);
+	//terrain.drawBoundingBox(myBasicShader);
 
-	// END TERRAIN ------------------------	
-
-	// TERRAIN SPHERE ---------------------
-	/*
-	terrainSphere.setCentre(10, 10, 5);
-	
-	glUseProgram(sphereShader->handle());
-
-	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ViewMatrix"), 1, GL_FALSE, &viewingMatrix[0][0]);
-
-	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0));
-	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
-
-	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
-	glUniformMatrix3fv(glGetUniformLocation(sphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
-
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	if (checkDist()) {
-		terrainSphere.render();
-	}	
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
-	*/
-	// END TERRAIN SPHERE ------------------
+	// END TERRAIN ---------------------
 
 	glFlush();
 	glutSwapBuffers();
@@ -231,7 +236,7 @@ void reshape(int width, int height)		// Resize the OpenGL window
 	glViewport(0,0,width,height);						// Reset The Current Viewport
 
 	//Set the projection matrix
-	ProjectionMatrix = glm::perspective(glm::radians(60.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 0.01f, 200.0f);
+	ProjectionMatrix = glm::perspective(glm::radians(60.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 0.01f, 400.0f);
 }
 void init()
 {
@@ -292,7 +297,7 @@ void init()
 		//model.centreOnZero();
 
 		terrain.calcVertNormalsUsingOctree();  //the method will construct the octree if it hasn't already been created.
-		
+		terrain.calcBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
 
 		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
 		terrain.initDrawElements();
@@ -303,16 +308,26 @@ void init()
 		cout << " model failed to load " << endl;
 	}
 
+	if (objLoader.loadModel("Models/skySphere.obj", skySphere))//returns true if the model is loaded, puts the model in the model parameter
+	{
+		cout << " model loaded " << endl;
+
+		skySphere.calcCentrePoint();
+		skySphere.centreOnZero();
+
+		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
+		skySphere.initDrawElements();
+		skySphere.initVBO(myShader);
+	}
+	else
+	{
+		cout << " model failed to load " << endl;
+	}
+
 	//Sphere construction for testing collisions
 	mySphere.setCentre(pos.x, pos.y, pos.z + 3);
 	mySphere.setRadius(0.3);
 	mySphere.constructGeometry(sphereShader, 10);
-
-	/*
-	terrainSphere.setCentre(10, 10, 5);
-	terrainSphere.setRadius(3.1);
-	terrainSphere.constructGeometry(sphereShader, 10);	
-	*/
 }
 
 void special(int key, int x, int y){
@@ -484,12 +499,13 @@ void changeCamera() {
 		camera = 0;
 }
 
-//Possible sphere collision implementation, not working
-/*
+//sphere collision implementation
+
 bool checkSphereCol() {
-	if ((pow((mySphere.cx - terrainSphere.cx), 2) + pow((mySphere.cy - mySphere.cy), 2) + pow((mySphere.cz - terrainSphere.cz), 2)) < pow(6.2, 2)) {
+	if ((sphereCentre.x < maxX && sphereCentre.x > minX) && (sphereCentre.y < maxY && sphereCentre.y > minY) && (sphereCentre.z < maxZ && sphereCentre.z > minZ)) {
+		return true;
+	}
+	else {
 		return false;
 	}
-	return true;
 }
-*/
