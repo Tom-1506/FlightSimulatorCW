@@ -34,7 +34,8 @@ Shader* skySphereShader;
 float amount = 0;
 float temp = 0.002f;
 
-ThreeDModel plane; //A threeDModel object for the plane
+ThreeDModel planeBody; //A threeDModel object for the plane body
+ThreeDModel planeGlass; //A threeDModel object for the plane glass
 ThreeDModel terrain; //A threeDModel object for the terrain
 ThreeDModel skySphere; //A threeDModel object for the sky sphere
 
@@ -208,7 +209,7 @@ void display()
 
 	// END TERRAIN ---------------------
 
-	// PLANE ---------------------------
+	// PLANE BODY ---------------------------
 
 	glUseProgram(myShader->handle());  // use the shader
 
@@ -219,15 +220,7 @@ void display()
 	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for plane
 	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
 
-	if (camera == 2) {
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	}
-	else {
-		glDisable(GL_BLEND);
-	}
-
-	plane.drawElementsUsingVBO(myShader);
+	planeBody.drawElementsUsingVBO(myShader);
 
 	glUseProgram(myBasicShader->handle());  // use the shader
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
@@ -235,7 +228,31 @@ void display()
 
 	//plane.drawOctreeLeaves(myBasicShader);
 
-	// END PLANE -----------------------
+	// END PLANE BODY -----------------------
+
+	// PLANE BODY ---------------------------
+
+	glUseProgram(myShader->handle());  // use the shader
+
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for plane 
+	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
+	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for plane
+	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	planeGlass.drawElementsUsingVBO(myShader);
+
+	glUseProgram(myBasicShader->handle());  // use the shader
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	//plane.drawOctreeLeaves(myBasicShader);
+
+	// END PLANE BODY -----------------------
 
 
 	glFlush();
@@ -290,19 +307,37 @@ void init()
 	//initialise objectTransformation matrix to identity mat 
 	objectTransformation = glm::mat4(1.0f);
 
-	cout << " loading model " << endl;
-	if(objLoader.loadModel("Models/TAL16.obj", plane))//returns true if the model is loaded, puts the model in the model parameter
+	cout << " loading models " << endl;
+	if(objLoader.loadModel("Models/TAL16body.obj", planeBody))//returns true if the model is loaded, puts the model in the model parameter
 	{
 		cout << " model loaded " << endl;		
 
 		//model.calcCentrePoint();
 		//model.centreOnZero();
 	
-		plane.calcVertNormalsUsingOctree();  //the method will construct the octree if it hasn't already been created.				
+		planeBody.calcVertNormalsUsingOctree();  //the method will construct the octree if it hasn't already been created.				
 
 		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
-		plane.initDrawElements();
-		plane.initVBO(myShader);
+		planeBody.initDrawElements();
+		planeBody.initVBO(myShader);
+	}
+	else
+	{
+		cout << " model failed to load " << endl;
+	}
+
+	if (objLoader.loadModel("Models/TAL16glass.obj", planeGlass))//returns true if the model is loaded, puts the model in the model parameter
+	{
+		cout << " model loaded " << endl;
+
+		//model.calcCentrePoint();
+		//model.centreOnZero();
+
+		planeGlass.calcVertNormalsUsingOctree();  //the method will construct the octree if it hasn't already been created.				
+
+		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
+		planeGlass.initDrawElements();
+		planeGlass.initVBO(myShader);
 	}
 	else
 	{
