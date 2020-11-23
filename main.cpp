@@ -60,7 +60,7 @@ float Material_Shininess = 50;
 //Light Properties
 float Light_Ambient_And_Diffuse[4] = {1.4f, 1.4f, 1.34f, 1.6f};
 float Light_Specular[4] = {1.6f,1.6f,1.54f,1.6f};
-float LightPos[4] = {0.0f, 0.0f, 1.0f, 0.0f};
+float LightPos[4] = {0.0f, 1.0f, 1.0f, 0.0f};
 
 double minX = -50;
 double minY = 0;
@@ -136,29 +136,10 @@ void display()
 	glUniform4fv(glGetUniformLocation(myShader->handle(), "material_specular"), 1, Material_Specular);
 	glUniform1f(glGetUniformLocation(myShader->handle(), "material_shininess"), Material_Shininess);
 
-	// start rendering
-	// PLANE ---------------------------
-
-	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
-
-	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
-	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
-	
-	glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); //lighting normals for plane
-	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
-		
-	plane.drawElementsUsingVBO(myShader);	
-
-	glUseProgram(myBasicShader->handle());  // use the shader
-	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
-	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
-		
-	//plane.drawOctreeLeaves(myBasicShader);
-
-	// END PLANE -----------------------
+	// start rendering	
 
 	// SPHERE --------------------------
-	
+	/*
 	sphereCentre = glm::vec3(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0, 3)));
 	mySphere.setCentre(sphereCentre.x, sphereCentre.y, sphereCentre.z);
 
@@ -181,21 +162,24 @@ void display()
 
 	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 
-	//cout << mySphere.cx << " " << mySphere.cy << " " << mySphere.cz << endl;
-	
+	*/
 	// END SPHERE ----------------------
 
 	// SKY SPHERE ----------------------
+
+	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
 	
-	glUseProgram(myShader->handle());  // use the shader
+	glUseProgram(skySphereShader->handle());  // use the shader
 
-	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for skySphere 
-	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(skySphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 
-	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
-	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for skySphere
+	glUniformMatrix4fv(glGetUniformLocation(skySphereShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
-	skySphere.drawElementsUsingVBO(myShader);
+	glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); //lighting normals for skySphere
+	glUniformMatrix3fv(glGetUniformLocation(skySphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+	skySphere.drawElementsUsingVBO(skySphereShader);
 
 	glUseProgram(myBasicShader->handle());  // use the shader
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
@@ -219,10 +203,33 @@ void display()
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
-	terrain.drawOctreeLeaves(myBasicShader);
+	//terrain.drawOctreeLeaves(myBasicShader);
 	//terrain.drawBoundingBox(myBasicShader);
 
 	// END TERRAIN ---------------------
+
+	// PLANE ---------------------------
+
+	glUseProgram(myShader->handle());  // use the shader
+
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for plane 
+	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
+	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for plane
+	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+
+	plane.drawElementsUsingVBO(myShader);
+
+	glUseProgram(myBasicShader->handle());  // use the shader
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	//plane.drawOctreeLeaves(myBasicShader);
+
+	// END PLANE -----------------------
+
 
 	glFlush();
 	glutSwapBuffers();
@@ -236,7 +243,7 @@ void reshape(int width, int height)		// Resize the OpenGL window
 	glViewport(0,0,width,height);						// Reset The Current Viewport
 
 	//Set the projection matrix
-	ProjectionMatrix = glm::perspective(glm::radians(60.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 0.01f, 400.0f);
+	ProjectionMatrix = glm::perspective(glm::radians(60.0f), (GLfloat)screenWidth/(GLfloat)screenHeight, 0.01f, 800.0f);
 }
 void init()
 {
@@ -257,8 +264,14 @@ void init()
 		cout << "failed to load shader" << endl;
 	}		
 
+	skySphereShader = new Shader();
+	if (!skySphereShader->load("BasicView", "glslfiles/sky.vert", "glslfiles/sky.frag"))
+	{
+		cout << "failed to load shader" << endl;
+	}
+
 	sphereShader = new Shader();
-	if (!sphereShader->load("BasicView", "glslfiles/basicSpecular.vert", "glslfiles/basicSpecular.frag"))
+	if (!sphereShader->load("BasicView", "glslfiles/basicTransformations.vert", "glslfiles/basicTransformations.frag"))
 	{
 		cout << "failed to load shader" << endl;
 	}

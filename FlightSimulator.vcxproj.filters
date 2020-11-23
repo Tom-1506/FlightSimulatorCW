@@ -151,5 +151,11 @@
     <None Include="glslfiles\basicSpecular.vert">
       <Filter>headers\glslfiles</Filter>
     </None>
+    <None Include="sky.vert">
+      <Filter>headers\glslfiles</Filter>
+    </None>
+    <None Include="sky.frag">
+      <Filter>headers\glslfiles</Filter>
+    </None>
   </ItemGroup>
 </Project>

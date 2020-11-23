@@ -58,6 +58,8 @@
     <None Include="glslfiles\basicTransformations.vert" />
     <None Include="glslfiles\basicTransformationsWithDisplacement.frag" />
     <None Include="glslfiles\basicTransformationsWithDisplacement.vert" />
+    <None Include="sky.frag" />
+    <None Include="sky.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{472FEE38-34C3-4DC2-8DFC-871F6F80345E}</ProjectGuid>
