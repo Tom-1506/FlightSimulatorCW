@@ -39,10 +39,41 @@ ThreeDModel planeGlass; //A threeDModel object for the plane glass
 ThreeDModel terrain; //A threeDModel object for the terrain
 ThreeDModel skySphere; //A threeDModel object for the sky sphere
 
-//Sphere used to test collisions
-Sphere mySphere;
-glm::vec3 sphereCentre;
-float mySphereCentre[3];
+//Collision spheres
+Sphere* sphereList[16];
+
+Sphere noseSphere;
+glm::vec3 noseSphereCentre;
+Sphere frontSphere;
+glm::vec3 frontSphereCentre;
+Sphere cockpitSphere;
+glm::vec3 cockpitSphereCentre;
+Sphere bodySphere;
+glm::vec3 bodySphereCentre;
+Sphere backSphere;
+glm::vec3 backSphereCentre;
+Sphere frontWheelSphere;
+glm::vec3 frontWheelCentre;
+Sphere leftWheelSphere;
+glm::vec3 leftWheelSphereCentre;
+Sphere rightWheelSphere;
+glm::vec3 rightWheelSphereCentre;
+Sphere leftWingFrontSphere;
+glm::vec3 leftWingFrontSphereCentre;
+Sphere leftWingBackSphere;
+glm::vec3 leftWingBackSphereCentre;
+Sphere rightWingFrontSphere;
+glm::vec3 rightWingFrontSphereCentre;
+Sphere rightWingBackSphere;
+glm::vec3 rightWingBackSphereCentre;
+Sphere leftStabSphere;
+glm::vec3 leftStabSphereCentre;
+Sphere rightStabSphere;
+glm::vec3 rightStabSphereCentre;
+Sphere finSphere;
+glm::vec3 finSphereCentre;
+Sphere jetSphere;
+glm::vec3 jetSphereCentre;
 
 OBJLoader objLoader;	//this object is used to load the 3d models.
 ///END MODEL LOADING
@@ -75,17 +106,19 @@ bool LeftPressed = false;
 int screenWidth = 960, screenHeight = 540;
 
 //booleans to handle when the arrow keys are pressed or released.
-bool Left = false;
-bool Right = false;
-bool Up = false;
-bool Down = false;
-bool A = false;
-bool D = false;
-bool SPACE = false;
-bool C = false;
+bool rollLeft = false;
+bool rollRight = false;
+bool pitchFwd = false;
+bool pitchBack = false;
+bool yawLeft = false;
+bool yawRight = false;
+bool accelerate = false;
+bool decelerate = false;
+bool changeView = false;
 
 float spin=180;
-float speed=0.1f;
+double velocity=0.0f;
+double zero = 0.0f;
 int camera = 0;
 
 //OPENGL FUNCTION PROTOTYPES
@@ -113,7 +146,7 @@ void display()
 	switch (camera) {
 	case 0:
 		//environment view
-		viewingMatrix = glm::lookAt(glm::vec3(15, 10, 15), pos, glm::vec3(0.0f, 1.0f, 0.0));
+		viewingMatrix = glm::lookAt(glm::vec3(4, 4, 4), pos, glm::vec3(0.0f, 1.0f, 0.0));
 		break;
 	case 1:
 		//view behind jet
@@ -140,9 +173,11 @@ void display()
 	// start rendering	
 
 	// SPHERE --------------------------
-	/*
-	sphereCentre = glm::vec3(pos + (glm::mat3(objectTransformation) * glm::vec3(0, 0, 3)));
-	mySphere.setCentre(sphereCentre.x, sphereCentre.y, sphereCentre.z);
+	
+	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
+	
+	noseSphereCentre = glm::vec3(pos + (glm::mat3(objectTransformation) * noseSphereCentre));
+	noseSphere.setCentre(noseSphereCentre.x, noseSphereCentre.y, noseSphereCentre.z);
 
 	glUseProgram(sphereShader->handle());
 
@@ -150,25 +185,25 @@ void display()
 
 	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
-	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for terrain
-	glUniformMatrix3fv(glGetUniformLocation(sphereShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
-
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	
-	if (terrain.checkPointInOctree(sphereCentre, glm::vec3(0, -5, 0))) {
-		mySphere.render();
+	//if (terrain.checkPointInOctree(noseSphereCentre, glm::vec3(0, -5, 0))) {
+		//noseSphere.render();
+	//}
+
+	for each (Sphere* sphere in sphereList)
+	{
+		sphere->render();
 	}
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glUniformMatrix4fv(glGetUniformLocation(sphereShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 
-	*/
+	
 	// END SPHERE ----------------------
 
 	// SKY SPHERE ----------------------
-
-	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
 	
 	glUseProgram(skySphereShader->handle());  // use the shader
 
@@ -379,26 +414,119 @@ void init()
 		cout << " model failed to load " << endl;
 	}
 
-	//Sphere construction for testing collisions
-	mySphere.setCentre(pos.x, pos.y, pos.z + 3);
-	mySphere.setRadius(0.3);
-	mySphere.constructGeometry(sphereShader, 10);
+	// Define Collision spheres
+	
+	noseSphere.setCentre(pos.x, pos.y - 0.25, pos.z + 2.95);
+	glm::vec3 noseSphereCentre = glm::vec3(pos.x, pos.y - 0.25, pos.z + 2.95);
+	noseSphere.setRadius(0.1);
+	noseSphere.constructGeometry(sphereShader, 10);
+	sphereList[0] = &noseSphere;
+
+	frontSphere.setCentre(pos.x, pos.y - 0.2, pos.z + 2.2);
+	glm::vec3 frontSphereCentre = glm::vec3(pos.x, pos.y - 0.2, pos.z + 2.2);
+	frontSphere.setRadius(0.18);
+	frontSphere.constructGeometry(sphereShader, 10);
+	sphereList[1] = &frontSphere;
+	
+	cockpitSphere.setCentre(pos.x, pos.y, pos.z + 1.15);
+	glm::vec3 cockpitSphereCentre = glm::vec3(pos.x, pos.y, pos.z + 1.15);
+	cockpitSphere.setRadius(0.3);
+	cockpitSphere.constructGeometry(sphereShader, 10);
+	sphereList[2] = &cockpitSphere;
+
+	bodySphere.setCentre(pos.x, pos.y, pos.z);
+	glm::vec3 bodySphereCentre = glm::vec3(pos.x, pos.y, pos.z);
+	bodySphere.setRadius(0.35);
+	bodySphere.constructGeometry(sphereShader, 10);
+	sphereList[3] = &bodySphere;
+	
+	backSphere.setCentre(pos.x, pos.y - 0.08, pos.z - 1.15);
+	glm::vec3 backSphereCentre = glm::vec3(pos.x, pos.y, pos.z - 1.2);
+	backSphere.setRadius(0.3);
+	backSphere.constructGeometry(sphereShader, 10);
+	sphereList[4] = &backSphere;
+
+	frontWheelSphere.setCentre(pos.x, pos.y - 0.7, pos.z + 1.95);
+	glm::vec3 frontWheelSphereCentre = glm::vec3(pos.x, pos.y - 0.7, pos.z + 1.95);
+	frontWheelSphere.setRadius(0.1);
+	frontWheelSphere.constructGeometry(sphereShader, 10);
+	sphereList[5] = &frontWheelSphere;
+
+	leftWheelSphere.setCentre(pos.x + 0.7, pos.y - 0.7, pos.z - 0.6);
+	glm::vec3 leftWheelSphereCentre = glm::vec3(pos.x + 0.7, pos.y - 0.7, pos.z - 0.6);
+	leftWheelSphere.setRadius(0.1);
+	leftWheelSphere.constructGeometry(sphereShader, 10);
+	sphereList[6] = &leftWheelSphere;
+
+	rightWheelSphere.setCentre(pos.x - 0.7, pos.y - 0.7, pos.z - 0.6);
+	glm::vec3 rightWheelSphereCentre = glm::vec3(pos.x + 0.7, pos.y - 0.7, pos.z - 0.6);
+	rightWheelSphere.setRadius(0.1);
+	rightWheelSphere.constructGeometry(sphereShader, 10);
+	sphereList[7] = &rightWheelSphere;
+
+	leftWingFrontSphere.setCentre(pos.x + 0.8, pos.y - 0.25, pos.z - 0.35);
+	glm::vec3 leftWingFrontSphereCentre = glm::vec3(pos.x + 0.8, pos.y - 0.25, pos.z - 0.35);
+	leftWingFrontSphere.setRadius(0.1);
+	leftWingFrontSphere.constructGeometry(sphereShader, 10);
+	sphereList[8] = &leftWingFrontSphere;
+
+	leftWingBackSphere.setCentre(pos.x + 1.65, pos.y - 0.25, pos.z - 0.8);
+	glm::vec3 leftWingBackSphereCentre = glm::vec3(pos.x + 1.65, pos.y - 0.25, pos.z - 0.8);
+	leftWingBackSphere.setRadius(0.1);
+	leftWingBackSphere.constructGeometry(sphereShader, 10);
+	sphereList[9] = &leftWingBackSphere;
+
+	rightWingFrontSphere.setCentre(pos.x - 0.8, pos.y - 0.25, pos.z - 0.35);
+	glm::vec3 rightWingFrontSphereCentre = glm::vec3(pos.x - 0.8, pos.y - 0.25, pos.z - 0.35);
+	rightWingFrontSphere.setRadius(0.1);
+	rightWingFrontSphere.constructGeometry(sphereShader, 10);
+	sphereList[10] = &rightWingFrontSphere;
+
+	rightWingBackSphere.setCentre(pos.x - 1.65, pos.y - 0.25, pos.z - 0.8);
+	glm::vec3 rightWingBackSphereCentre = glm::vec3(pos.x - 1.65, pos.y - 0.25, pos.z - 0.8);
+	rightWingBackSphere.setRadius(0.1);
+	rightWingBackSphere.constructGeometry(sphereShader, 10);
+	sphereList[11] = &rightWingBackSphere;
+
+	leftStabSphere.setCentre(pos.x + 0.85, pos.y - 0.25, pos.z - 2.4);
+	glm::vec3 leftStabSphereCentre = glm::vec3(pos.x + 0.85, pos.y - 0.25, pos.z - 2.4);
+	leftStabSphere.setRadius(0.1);
+	leftStabSphere.constructGeometry(sphereShader, 10);
+	sphereList[12] = &leftStabSphere;
+
+	rightStabSphere.setCentre(pos.x - 0.85, pos.y - 0.25, pos.z - 2.4);
+	glm::vec3 rightStabSphereCentre = glm::vec3(pos.x - 0.85, pos.y - 0.25, pos.z - 2.4);
+	rightStabSphere.setRadius(0.1);
+	rightStabSphere.constructGeometry(sphereShader, 10);
+	sphereList[13] = &rightStabSphere;
+
+	finSphere.setCentre(pos.x, pos.y + 0.9, pos.z - 2.2);
+	glm::vec3 finSphereCentre = glm::vec3(pos.x, pos.y + 0.9, pos.z - 2.2);
+	finSphere.setRadius(0.1);
+	finSphere.constructGeometry(sphereShader, 10);
+	sphereList[14] = &finSphere;
+
+	jetSphere.setCentre(pos.x, pos.y, pos.z - 2.8);
+	glm::vec3 jetSphereCentre = glm::vec3(pos.x, pos.y, pos.z - 2.8);
+	jetSphere.setRadius(0.3);
+	jetSphere.constructGeometry(sphereShader, 10);
+	sphereList[15] = &jetSphere;
 }
 
 void special(int key, int x, int y){
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		Left = true;
+		rollLeft = true;
 		break;
 	case GLUT_KEY_RIGHT:
-		Right = true;
+		rollRight = true;
 		break;
 	case GLUT_KEY_UP:
-		Up = true;
+		pitchFwd = true;
 		break;
 	case GLUT_KEY_DOWN:
-		Down = true;
+		pitchBack = true;
 		break;
 	}
 }
@@ -407,35 +535,50 @@ void specialUp(int key, int x, int y){
 	switch (key)
 	{
 	case GLUT_KEY_LEFT:
-		Left = false;
+		rollLeft = false;
 		break;
 	case GLUT_KEY_RIGHT:
-		Right = false;
+		rollRight = false;
 		break;
 	case GLUT_KEY_UP:
-		Up = false;
+		pitchFwd = false;
 		break;
 	case GLUT_KEY_DOWN:
-		Down = false;
+		pitchBack = false;
 		break;	
 	}
 }
 
 void keyFunc(unsigned char key, int x, int y){
 	switch (key) {
-		case 97:
-			A = true;
+		case 97: // a
+			yawLeft = true;
 			break;
-		case 100:
-			D = true;
+		case 65: // A
+			yawLeft = true;
 			break;
-		case 99:
-			C = true;
+		case 100: // d
+			yawRight = true;
 			break;
-		case 32:
-			SPACE = true;
+		case 68: // D
+			yawRight = true;
 			break;
-		case 27:
+		case 99: // c
+			changeView = true;
+			break;
+		case 67: // C
+			changeView = true;
+			break;
+		case 32: // space
+			accelerate = true;
+			break;
+		case 115: // s
+			decelerate = true;
+			break;
+		case 83: // S
+			decelerate = true;
+			break;
+		case 27: // esc
 			exit(0);
 			break;
 	}
@@ -443,14 +586,26 @@ void keyFunc(unsigned char key, int x, int y){
 
 void keyUpFunc(unsigned char key, int x, int y) {
 	switch (key) {
-		case 97:
-			A = false;
+		case 97: // a
+			yawLeft = false;
 			break;
-		case 100:
-			D = false;
+		case 65: // A
+			yawLeft = false;
 			break;
-		case 32:
-			SPACE = false;
+		case 100: // d
+			yawRight = false;
+			break;
+		case 68: // D
+			yawRight = false;
+			break;
+		case 32: // space
+			accelerate = false;
+			break;
+		case 115: // s
+			decelerate = false;
+			break;
+		case 83: // S
+			decelerate = false;
 			break;
 	}
 }
@@ -458,46 +613,64 @@ void keyUpFunc(unsigned char key, int x, int y) {
 void processKeys()
 {
 	float spinXinc = 0.0f, spinYinc = 0.0f, spinZinc = 0.0f;
-	if (Left)
+	if (rollRight)
 	{
-		spinZinc = -speed / 3;
+		spinZinc = 0.0333;
 	}
-	if (Right)
+	if (rollLeft)
 	{
-		spinZinc = speed / 3;
+		spinZinc = -0.0333;
 	}
-	if (Up)
+	if (pitchFwd)
 	{
-		spinXinc = speed / 4;
+		spinXinc = 0.02;
 	}
-	if (Down)
+	if (pitchBack)
 	{
-		spinXinc = -speed / 4;
+		spinXinc = -0.02;
 	}
-	if (A)
+	if (yawLeft)
 	{
-		spinYinc = speed / 8;
+		spinYinc = 0.0125;
 	}
-	if (D)
+	if (yawRight)
 	{
-		spinYinc = -speed / 8;
+		spinYinc = -0.0125;
 	}
-	if (C)
+	if (changeView)
 	{
 		changeCamera();
-		C = false;
+		changeView = false;
 	}
-	if (SPACE)
+	if (accelerate)
 	{
-		pos.x += objectTransformation[2][0] * speed;
-		pos.y += objectTransformation[2][1] * speed;
-		pos.z += objectTransformation[2][2] * speed;
+		if (velocity < 1){
+			velocity += 0.001;
+		}
 	}
+	if (decelerate) 
+	{
+		if (velocity > 0) {
+			velocity -= 0.003;
+		}
+	}	
 	updateTransform(spinXinc, spinYinc, spinZinc);
 }
 
 void updateTransform(float xinc, float yinc, float zinc)
 {
+    if (velocity > 0) { //natural deceleration
+		velocity = 0.9999 * velocity;
+	}
+	if (velocity < 0) { //prevents slight reversing
+		velocity = 0;
+	}	
+
+	std::cout << velocity << std::endl;
+
+	pos.x += objectTransformation[2][0] * velocity;
+	pos.y += objectTransformation[2][1] * velocity;
+	pos.z += objectTransformation[2][2] * velocity;
 	objectTransformation = glm::rotate(objectTransformation, xinc, glm::vec3(1,0,0));
 	objectTransformation = glm::rotate(objectTransformation, yinc, glm::vec3(0,1,0));
 	objectTransformation = glm::rotate(objectTransformation, zinc, glm::vec3(0,0,1));
@@ -555,7 +728,7 @@ void changeCamera() {
 }
 
 //sphere collision implementation
-
+/*
 bool checkSphereCol() {
 	if ((sphereCentre.x < maxX && sphereCentre.x > minX) && (sphereCentre.y < maxY && sphereCentre.y > minY) && (sphereCentre.z < maxZ && sphereCentre.z > minZ)) {
 		return true;
@@ -563,4 +736,4 @@ bool checkSphereCol() {
 	else {
 		return false;
 	}
-}
+}*/
