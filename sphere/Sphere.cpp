@@ -15,11 +15,15 @@ void Sphere::setRadius(float rad)
 	r = rad;
 }
 
-void Sphere::setCentre(float x, float y, float z)
+void Sphere::setCentre(glm::vec3 centre)
 {
-	cx = x;
-	cy = y;
-	cz = z;
+	cx = centre.x;
+	cy = centre.y;
+	cz = centre.z;
+}
+
+glm::vec3 Sphere::getCentre() {
+	return glm::vec3(cx, cy, cz);
 }
 
 void Sphere::render()

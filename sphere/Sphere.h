@@ -1,5 +1,6 @@
 
 #include "../GL/glew.h"
+#include "../glm\glm.hpp"
 
 class Shader;
 
@@ -24,5 +25,6 @@ public:
 	void constructGeometry(Shader* myShader, int level);
 	void render();
 	void setRadius(float rad);
-	void setCentre(float x, float y, float z);
+	void setCentre(glm::vec3 centre);
+	glm::vec3 getCentre();
 };
