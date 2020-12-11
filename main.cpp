@@ -22,6 +22,7 @@ using namespace std;
 #include "sphere\Sphere.h"
 
 glm::mat4 objectTransformation;
+glm::mat4 ufoTransformation;
 
 Shader* myShader;  ///shader object 
 Shader* myBasicShader;
@@ -37,6 +38,8 @@ float temp = 0.002f;
 
 ThreeDModel planeBody; //A threeDModel object for the plane body
 ThreeDModel planeGlass; //A threeDModel object for the plane glass
+ThreeDModel ufoBody; //A threeDModel object for the ufo body
+ThreeDModel ufoGlass; //A threeDModel object for the ufo glass
 ThreeDModel skySphere; //A threeDModel object for the sky sphere
 
 // Terrain
@@ -92,7 +95,8 @@ OBJLoader objLoader;	//this object is used to load the 3d models.
 glm::mat4 ProjectionMatrix; // matrix for the orthographic projection
 glm::mat4 ModelViewMatrix;  // matrix for the modelling and viewing
 
-glm::vec3 pos = glm::vec3(0.0f,0.0f,0.0f); //vector for the position of the object.
+glm::vec3 pos = glm::vec3(0.0f,-3.2999f,0.0f); //vector for the position of the object.
+glm::vec3 ufoPos = glm::vec3(-15.0f, 20.0f, -15.0f); //vector for the position of the ufo.
 
 //Material properties
 float Material_Ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
@@ -126,12 +130,21 @@ bool accelerate = false;
 bool decelerate = false;
 bool changeView = false;
 
-bool floorCollideFront = false;
-bool floorCollideBack = false;
+bool floorCollide = true;
+bool floorCollideFront = true;
+bool floorCollideBack = true;
+bool anyWheelDown = true;
+bool frontWheelDown = true;
+bool leftWheelDown = true;
+bool rightWheelDown = true;
+bool backWheelsDown = true;
+bool allWheelsDown = true;
+bool landed = true;
+bool crashed = false;
 
 float spin=180;
 double velocity = 0.0f;
-double gravity = -0.075f;
+double gravity = -0.0375f;
 int camera = 0;
 
 //OPENGL FUNCTION PROTOTYPES
@@ -142,6 +155,7 @@ void processKeys();         //called in winmain to process keyboard input
 void idle();		//idle function
 void updateTransform(float xinc, float yinc, float zinc);
 void changeCamera();
+void checkWheels();
 //bool checkSphereCol();
 
 /*************    START OF OPENGL FUNCTIONS   ****************/
@@ -159,7 +173,8 @@ void display()
 	switch (camera) {
 	case 0:
 		//environment view
-		viewingMatrix = glm::lookAt(glm::vec3(4, 4, 4), pos, glm::vec3(0.0f, 1.0f, 0.0));
+		//viewingMatrix = glm::lookAt(glm::vec3(10, -3, 10), pos, glm::vec3(0.0f, 1.0f, 0.0));
+		viewingMatrix = glm::lookAt(glm::vec3(5, 15, 5), ufoPos, glm::vec3(0.0f, 1.0f, 0.0));
 		break;
 	case 1:
 		//view behind jet
@@ -189,6 +204,7 @@ void display()
 	// SPHERES --------------------------
 	
 	glm::mat4 modelmatrix = glm::translate(glm::mat4(1.0f), pos);
+	glm::mat4 ufoModelmatrix = glm::translate(glm::mat4(1.0f), ufoPos);
 
 	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
 
@@ -200,15 +216,18 @@ void display()
 
 	for (int i = 0; i < numSpheres; i++) {
 		sphereList[i]->setCentre(glm::vec3(pos + (glm::mat3(objectTransformation) * sphereOffsets[i])));		
+		//sphereList[i]->render();
 		
 		for (ThreeDModel* model : models) {
 			if (model->checkPointInOctree(sphereList[i]->getCentre(), terrainOffset)) {
 				sphereList[i]->render();
 				if (i >= 11) {
 					floorCollideBack = true;
+					floorCollide = true;
 				}
 				else {
 					floorCollideFront = true;
+					floorCollide = true;
 				}
 			}	
 		}			
@@ -258,18 +277,41 @@ void display()
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 		
-	for (ThreeDModel* model : models) {
-		//model->drawOctreeLeaves(myBasicShader);
-		//model->drawBoundingBox(myBasicShader);
-	}
+	/*for (ThreeDModel* model : models) {
+		model->drawOctreeLeaves(myBasicShader);
+		model->drawBoundingBox(myBasicShader);
+	}*/
 
 	// END TERRAIN ---------------------
+
+	// UFO ----------------------------------
+	
+	glUseProgram(myShader->handle());  // use the shader
+
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for ufo 
+	ModelViewMatrix = viewingMatrix * ufoModelmatrix * ufoTransformation;
+	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	normalMatrix = glm::inverseTranspose(glm::mat3(ModelViewMatrix)); // lighting normals for ufo
+	glUniformMatrix3fv(glGetUniformLocation(myShader->handle(), "NormalMatrix"), 1, GL_FALSE, &normalMatrix[0][0]);
+
+	ufoBody.drawElementsUsingVBO(myShader);
+	ufoGlass.drawElementsUsingVBO(myShader);
+
+	glUseProgram(myBasicShader->handle());  // use the shader
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
+
+	//ufoBody.drawOctreeLeaves(myBasicShader);
+	//ufoGlass.drawOctreeLeaves(myBasicShader);
+	
+	// END UFO ----------------------------
 
 	// PLANE BODY ---------------------------
 
 	glUseProgram(myShader->handle());  // use the shader
 
-	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 5, 0)); //resets model view for plane 
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for plane 
 	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
@@ -282,15 +324,13 @@ void display()
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
-	//plane.drawOctreeLeaves(myBasicShader);
-
 	// END PLANE BODY -----------------------
 
 	// PLANE BODY ---------------------------
 
 	glUseProgram(myShader->handle());  // use the shader
 
-	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 5, 0)); //resets model view for plane 
+	ModelViewMatrix = glm::translate(viewingMatrix, glm::vec3(0, 0, 0)); //resets model view for plane 
 	ModelViewMatrix = viewingMatrix * modelmatrix * objectTransformation;
 	glUniformMatrix4fv(glGetUniformLocation(myShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
 
@@ -305,8 +345,6 @@ void display()
 	glUseProgram(myBasicShader->handle());  // use the shader
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ProjectionMatrix"), 1, GL_FALSE, &ProjectionMatrix[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(myBasicShader->handle(), "ModelViewMatrix"), 1, GL_FALSE, &ModelViewMatrix[0][0]);
-
-	//plane.drawOctreeLeaves(myBasicShader);
 
 	// END PLANE BODY -----------------------
 
@@ -361,6 +399,7 @@ void init()
 
 	//initialise objectTransformation matrix to identity mat 
 	objectTransformation = glm::mat4(1.0f);
+	ufoTransformation = glm::mat4(1.0f);
 
 	cout << " loading models " << endl;
 	if(objLoader.loadModel("Models/TAL16body.obj", planeBody))//returns true if the model is loaded, puts the model in the model parameter
@@ -393,6 +432,42 @@ void init()
 		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
 		planeGlass.initDrawElements();
 		planeGlass.initVBO(myShader);
+	}
+	else
+	{
+		cout << " model failed to load " << endl;
+	}
+
+	if (objLoader.loadModel("Models/ufoBody.obj", ufoBody))//returns true if the model is loaded, puts the model in the model parameter
+	{
+		cout << " model loaded " << endl;
+
+		//model.calcCentrePoint();
+		//model.centreOnZero();
+
+		ufoBody.calcVertNormalsUsingOctree();  //the method will construct the octree if it hasn't already been created.				
+
+		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
+		ufoBody.initDrawElements();
+		ufoBody.initVBO(myShader);
+	}
+	else
+	{
+		cout << " model failed to load " << endl;
+	}
+
+	if (objLoader.loadModel("Models/ufoGlass.obj", ufoGlass))//returns true if the model is loaded, puts the model in the model parameter
+	{
+		cout << " model loaded " << endl;
+
+		//model.calcCentrePoint();
+		//model.centreOnZero();
+
+		ufoGlass.calcVertNormalsUsingOctree();  //the method will construct the octree if it hasn't already been created.				
+
+		//turn on VBO by setting useVBO to true in threeDmodel.cpp default constructor - only permitted on 8 series cards and higher
+		ufoGlass.initDrawElements();
+		ufoGlass.initVBO(myShader);
 	}
 	else
 	{
@@ -437,8 +512,8 @@ void init()
 	else
 	{
 		cout << " model failed to load " << endl;
-	}
-
+	}	
+	
 	if (objLoader.loadModel("Models/skySphere.obj", skySphere))//returns true if the model is loaded, puts the model in the model parameter
 	{
 		cout << " model loaded " << endl;
@@ -548,14 +623,14 @@ void init()
 	sphereList[12] = &rightWheelSphere;
 	sphereOffsets[12] = rightWheelSphereOffset; //
 
-	leftStabSphereOffset = glm::vec3(0.85, -0.25, -2.3);
+	leftStabSphereOffset = glm::vec3(0.85, -0.25, -2.6);
 	leftStabSphere.setCentre(pos + leftStabSphereOffset);
 	leftStabSphere.setRadius(0.4);
 	leftStabSphere.constructGeometry(sphereShader, 10);
 	sphereList[13] = &leftStabSphere;
 	sphereOffsets[13] = leftStabSphereOffset; //
 
-	rightStabSphereOffset = glm::vec3(-0.85, -0.25, -2.3);
+	rightStabSphereOffset = glm::vec3(-0.85, -0.25, -2.6);
 	rightStabSphere.setCentre(pos + rightStabSphereOffset);
 	rightStabSphere.setRadius(0.4);
 	rightStabSphere.constructGeometry(sphereShader, 10);
@@ -569,7 +644,7 @@ void init()
 	sphereList[15] = &finSphere;
 	sphereOffsets[15] = finSphereOffset; //
 
-	jetSphereOffset = glm::vec3(0.0, 0.0, -3.1);
+	jetSphereOffset = glm::vec3(0.0, -0.23, -3.1);
 	jetSphere.setCentre(pos + jetSphereOffset);
 	jetSphere.setRadius(0.4);
 	jetSphere.constructGeometry(sphereShader, 10);
@@ -677,43 +752,43 @@ void keyUpFunc(unsigned char key, int x, int y) {
 void processKeys()
 {
 	float spinXinc = 0.0f, spinYinc = 0.0f, spinZinc = 0.0f;
-	if (rollRight)
+	if (rollRight && !landed && !crashed)
 	{
-		spinZinc = 0.0333;
+		spinZinc = 0.015;
 	}
-	if (rollLeft)
+	if (rollLeft && !landed && !crashed)
 	{
-		spinZinc = -0.0333;
+		spinZinc = -0.015;
 	}
-	if (pitchFwd)
+	if (pitchFwd && !landed && !crashed)
 	{
-		spinXinc = 0.02;
+		spinXinc = 0.007;
 	}
-	if (pitchBack)
+	if (pitchBack && !landed && !crashed)
 	{
-		spinXinc = -0.02;
+		spinXinc = -0.007;
 	}
-	if (yawLeft)
+	if (yawLeft && velocity > 0.01 && !crashed)
 	{
-		spinYinc = 0.0125;
+		spinYinc = 0.00625;
 	}
-	if (yawRight)
+	if (yawRight && velocity > 0.01 && !crashed)
 	{
-		spinYinc = -0.0125;
+		spinYinc = -0.00625;
 	}
 	if (changeView)
 	{
 		changeCamera();
 		changeView = false;
 	}
-	if (accelerate && velocity < 1)
+	if (accelerate && velocity < 1 && !crashed)
 	{
-		velocity += 0.001;
+		velocity += 0.0005;
 	}
-	if (decelerate)
+	if (decelerate || crashed)
 	{
 		if (velocity > 0) {
-			velocity -= 0.003;
+			velocity -= 0.0003;
 		}
 	}
 	updateTransform(spinXinc, spinYinc, spinZinc);
@@ -727,7 +802,57 @@ void updateTransform(float xinc, float yinc, float zinc)
 	if (velocity < 0) { //prevents reversing
 		velocity = 0;
 	} 
-	if (floorCollideFront) {
+	if (velocity > 0.25) {
+		landed = false;
+	}
+
+	checkWheels();
+	//std::cout << "wheel down: " << anyWheelDown << std::endl;
+
+	if (!crashed && floorCollide && velocity < 0.1 && !landed && allWheelsDown) {
+		std::cout << velocity << std::endl;
+		std::cout << "LANDED" << std::endl;
+		landed = true;
+	}
+
+	if (((floorCollide && velocity > 0.3 && !anyWheelDown) || (floorCollide && !anyWheelDown)) && !crashed) {
+		std::cout << velocity << std::endl;
+		std::cout << "CRASHED" << std::endl;
+		crashed = true;
+	}
+
+	if (landed) {
+		pos.y = -3.2999999;
+	}
+	else if (floorCollide) {
+		pos.y += 0.01;
+	}
+	else {
+		pos.y += gravity;
+	}
+	
+	if (floorCollide && !allWheelsDown) {
+		if (leftWheelDown) {
+			//rotate right about z
+			objectTransformation = glm::rotate(objectTransformation, 0.002f, glm::vec3(0, 0, 1));
+			objectTransformation = glm::rotate(objectTransformation, 0.002f, glm::vec3(1, 0, 0));
+		}
+		else if (rightWheelDown) {
+			//rotate left about z
+			objectTransformation = glm::rotate(objectTransformation, -0.002f, glm::vec3(0, 0, 1));
+			objectTransformation = glm::rotate(objectTransformation, 0.002f, glm::vec3(1, 0, 0));
+		}
+		else if (backWheelsDown) {
+			//rotate forward about x
+			objectTransformation = glm::rotate(objectTransformation, 0.002f, glm::vec3(1, 0, 0));
+		}
+		else if (frontWheelDown) {
+			//rotate backward about x
+			objectTransformation = glm::rotate(objectTransformation, -0.002f, glm::vec3(1, 0, 0));
+		}
+	}
+
+	if (floorCollideFront && !landed) { //rotate backwards to bounce if front half of jet collides
 		//headingVec - objectTransformationZ
 		//new - updatedVecZ
 		//dot product and get the angle
@@ -736,40 +861,57 @@ void updateTransform(float xinc, float yinc, float zinc)
 		glm::vec3 headingVec = glm::normalize(objectTransformation[2]);
 		glm::vec3 updatedVecZ = glm::normalize(glm::reflect(glm::vec3(objectTransformation[2]), glm::vec3(0, 1, 0)));
 
-		float numerator = glm::dot(headingVec, updatedVecZ);
-		float denominator = (glm::length(headingVec) * (glm::length(updatedVecZ)));
+		float headingNumerator = glm::dot(headingVec, updatedVecZ);
+		float headingDenominator = (glm::length(headingVec) * (glm::length(updatedVecZ)));
 
-		std::cout << "rotate around x axis by: " << -(acosf(numerator / denominator) * (180.0f/M_PI)) << std::endl; 
+		//find orientation of the jet to decide which direction to bounce in (up or down)
 
-		objectTransformation = glm::rotate(objectTransformation, -acosf(numerator / denominator), glm::vec3(1,0,0));		
+		glm::vec3 jetUpVec = glm::normalize(pos * glm::vec3(objectTransformation[2]));
+		glm::vec3 up = glm::normalize(glm::vec3(0, 1, 0));
+
+		float upNumerator = glm::dot(jetUpVec, up);
+		float upDenominator = (glm::length(jetUpVec) * (glm::length(up)));
+
+		//WIP
+
+		//std::cout << "angle between jet up and y axis: " << -(acosf(upNumerator / upDenominator) * (180.0f / M_PI)) << std::endl;
+
+		//std::cout << "rotate around x axis by: " << -(acosf(numerator / denominator) * (180.0f/M_PI)) << std::endl;
+
+		objectTransformation = glm::rotate(objectTransformation, -acosf(headingNumerator / headingDenominator), glm::vec3(1,0,0));
 
 		pos.y += objectTransformation[2][1] * (velocity * 5);
 	}
-	if (floorCollideBack) {
-		//headingVec - objectTransformationZ
-		//new - flat z axis
 
-		glm::vec3 headingVec = glm::normalize(objectTransformation[2]);
-		glm::vec3 updatedVecZ = glm::normalize(glm::vec3(0, 0, 1));
-
-		float numerator = glm::dot(headingVec, updatedVecZ);
-		float denominator = (glm::length(headingVec) * (glm::length(updatedVecZ)));
-
-		std::cout << "rotate around x axis by: " << -(acosf(numerator / denominator) * (180.0f / M_PI)) << std::endl;
-
-		objectTransformation = glm::rotate(objectTransformation, -acosf(numerator / denominator), glm::vec3(1, 0, 0));
-	}
 	//std::cout << velocity << std::endl;
-	
+
+	//std::cout << "x: " << pos.x << " y: " << pos.y << " z: " << pos.z << std::endl;
+	//std::cout << "x: " << ufoPos.x << " y: " << ufoPos.y << " z: " << ufoPos.z << std::endl;
+	//std::cout << frontWheelDown << " " << leftWheelDown << " " << rightWheelDown << " " << backWheelsDown << " " << allWheelsDown << std::endl;
+
+	for (int i = 0; i < numSpheres; i++) { //check if any point on the jet collide and if they don't, set collide bools to false
+		sphereList[i]->setCentre(glm::vec3(pos + (glm::mat3(objectTransformation) * sphereOffsets[i])));
+
+		for (ThreeDModel* model : models) {
+			if (model->checkPointInOctree(sphereList[i]->getCentre(), terrainOffset)) {
+				break;
+			}
+			floorCollide = false;
+			floorCollideFront = false;
+			floorCollideBack = false;
+		}
+	}
+
 	pos.x += objectTransformation[2][0] * velocity;
 	pos.y += objectTransformation[2][1] * velocity;
-	pos.y += gravity;
 	pos.z += objectTransformation[2][2] * velocity;
 	objectTransformation = glm::rotate(objectTransformation, xinc, glm::vec3(1,0,0));
 	objectTransformation = glm::rotate(objectTransformation, yinc, glm::vec3(0,1,0));
 	objectTransformation = glm::rotate(objectTransformation, zinc, glm::vec3(0,0,1));
-	floorCollideFront = false;
-	floorCollideBack = false;
+
+	ufoPos.x += ufoTransformation[2][0] * 0.05;
+	ufoPos.z += ufoTransformation[2][2] * 0.05;
+	ufoTransformation = glm::rotate(ufoTransformation, 0.003f, glm::vec3(0, 1, 0));
 }
 
 void idle()
@@ -833,3 +975,47 @@ bool checkSphereCol() {
 		return false;
 	}
 }*/
+
+void checkWheels() {
+	if (terrain.checkPointInOctree(sphereList[4]->getCentre(), terrainOffset)) {
+		frontWheelDown = true;
+	}
+	else {
+		frontWheelDown = false;
+	}
+
+	if (terrain.checkPointInOctree(sphereList[11]->getCentre(), terrainOffset)) {
+		leftWheelDown = true;
+	}
+	else {
+		leftWheelDown = false;
+	}
+
+	if (terrain.checkPointInOctree(sphereList[12]->getCentre(), terrainOffset)) {
+		rightWheelDown = true;
+	}
+	else {
+		rightWheelDown = false;
+	}
+
+	if (leftWheelDown && rightWheelDown) {
+		backWheelsDown = true;
+	}
+	else {
+		backWheelsDown = false;
+	}
+
+	if (backWheelsDown && frontWheelDown) {
+		allWheelsDown = true;
+	}
+	else {
+		allWheelsDown = false;
+	}
+
+	if (frontWheelDown || leftWheelDown || rightWheelDown) {
+		anyWheelDown = true;
+	}
+	else {
+		anyWheelDown = false;
+	}
+}
